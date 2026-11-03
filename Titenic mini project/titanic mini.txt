@@ -1,0 +1,76 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import RandomForestClassifier
+
+
+train = pd.read_csv('train.csv')
+test = pd.read_csv('test.csv')
+
+
+train.info()
+test.info()
+
+
+train.head()
+train.head()
+
+train.corr(numeric_only=True).style.background_gradient(cmap='BuGn')
+
+
+train.drop(['PassengerId', 'Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+test.drop(['PassengerId', 'Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+
+
+train['Embarked'] = train.Embarked.fillna(train.Embarked.dropna().max())
+test['Fare'] = test.Fare.fillna(test.Fare.dropna().mean())
+
+
+for ds in combine:
+	ds['Sex'] = ds['Sex'].map( {'female': 1, 'male': 0} ).astype(int)
+
+
+
+
+for ds in combine:
+	for i in range(0, 2):
+		for j in range(0, 3):
+			guess_df = ds[(ds['Sex'] == i) & \
+			(ds['Pclass'] == j+1)]['Age'].dropna()
+			age_guess = guess_df.median()
+			# Convert random age float to nearest .5 age
+			guess_ages[i,j] = int( age_guess/0.5 + 0.5 ) * 0.5
+	for i in range(0, 2):
+		for j in range(0, 3):
+			ds.loc[ (ds.Age.isnull()) & (ds.Sex == i) & (ds.Pclass == j+1), \
+			'Age'] = guess_ages[i,j]
+
+	ds['Age'] = ds['Age'].astype(int)
+
+
+
+
+train.head()
+train.describe()
+
+X_train = pd.get_dummies(train.drop(['Survived'], axis=1))
+X_test = pd.get_dummies(test)
+y_train = train['Survived']
+
+
+def print_scores(model, X_train, Y_train, predictions, cv_splites=10):
+	print("The mean accuracy score of the train data is %.5f" % model.score(X_train, Y_train))
+	CV_scores = cross_val_score(model, X_train, Y_train, cv=cv_splites)
+	print("The individual cross-validation scores are: \n",CV_scores)
+	print("The minimum cross-validation score is %.3f" % min(CV_scores))
+	print("The maximum cross-validation score is %.3f" % max(CV_scores))
+	print("The mean cross-validation score is %.5f Ã‚Â± %0.2f" % (CV_scores.mean(), CV_scores.std() * 2))
+
+
+
+
+model = RandomForestClassifier(n_estimators= 80 ,max_depth=5 , max_features=8, min_samples_split=3 ,random_state=7)
+model.fit(X_train, y_train)
+predictions = model.predict(X_test)
+print_scores(model, X_train, y_train, predictions)
+
