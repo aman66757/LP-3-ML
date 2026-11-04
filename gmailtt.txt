@@ -1,0 +1,73 @@
+import pandas as pd, numpy as np, seaborn as sns, matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC, LinearSVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn import metrics
+
+# Read the dataset
+df = pd.read_csv('emails.csv')
+df.info()
+print(df.head())
+
+# Cleaning
+df.drop(columns=['Email No.'], inplace=True, errors='ignore')
+print(df.isna().sum().sum())
+print(df.describe())
+
+# Features and labels
+X = df.iloc[:, :df.shape[1]-1]     # Independent variables
+y = df.iloc[:, -1]                 # Dependent variable (0 = Not Spam, 1 = Spam)
+print(X.shape, y.shape)
+print(y.value_counts())
+
+# Split the dataset
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.15, random_state=8)
+
+# Define the models
+models = {
+    "K-Nearest Neighbors": KNeighborsClassifier(n_neighbors=2),
+    "Linear SVM": LinearSVC(random_state=8, max_iter=900000),
+    "Polynomial SVM": SVC(kernel="poly", degree=2, random_state=8),
+    "RBF SVM": SVC(kernel="rbf", random_state=8),
+    "Sigmoid SVM": SVC(kernel="sigmoid", random_state=8)
+}
+
+# Fit, predict, accuracy
+for name, model in models.items():
+    y_pred = model.fit(X_train, y_train).predict(X_test)
+    print(f"Accuracy for {name} model \t: {metrics.accuracy_score(y_test, y_pred)}")
+
+# Performance table
+results = []
+for name, model in models.items():
+    y_pred = model.predict(X_test)
+    results.append([
+        name,
+        metrics.accuracy_score(y_test, y_pred),
+        metrics.precision_score(y_test, y_pred),
+        metrics.recall_score(y_test, y_pred),
+        metrics.f1_score(y_test, y_pred)
+    ])
+
+result_df = pd.DataFrame(results, columns=['Model', 'Accuracy', 'Precision', 'Recall', 'F1-score'])
+print(result_df)
+
+# Confusion matrices
+fig, axes = plt.subplots(1, 5, figsize=(22, 4))
+for ax, (name, model) in zip(axes, models.items()):
+    cm = metrics.confusion_matrix(y_test, model.predict(X_test))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
+                xticklabels=['Not Spam', 'Spam'], yticklabels=['Not Spam', 'Spam'])
+    ax.set_title(name)
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Actual')
+plt.tight_layout()
+plt.show()
+
+# Accuracy comparison
+plt.figure(figsize=(9, 5))
+sns.barplot(x='Model', y='Accuracy', data=result_df)
+plt.xticks(rotation=20)
+plt.ylim(0, 1)
+plt.title("Accuracy of Models")
+plt.show()
